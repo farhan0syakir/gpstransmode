@@ -67,7 +67,17 @@ class SegmentFeaturization(object):
     
     def __init__(self, segment_file_path):
         #Load file with GPS characteristics information
-        self.df_seg = pd.read_csv(segment_file_path, sep = ",")
+        df_seg = pd.read_csv(segment_file_path, sep = ",")
+        # baca = df_seg.loc[564545] 
+        # print(df_seg[])
+        # df_seg['velocity_delta'] = pd.to_numeric(df_seg.velocity_delta).fillna(0.0)
+        # df_seg['velocity_delta']       = df_seg['velocity_delta'].astype(float)
+        # df_seg['time_delta']           = df_seg['time_delta'].astype(float)
+        # df_seg['distance_delta']       = df_seg['distance_delta'].astype(float)
+        # df_seg['velocity_delta_ratio'] = df_seg['velocity_delta_ratio'].astype(float)
+        # df_seg['bearing_delta_redirect'] = df_seg['bearing_delta_redirect'].astype(float)
+        self.df_seg = df_seg
+
 
     def featurize_segment(self):
         """
@@ -120,42 +130,43 @@ class SegmentFeaturization(object):
         for s_id in segment_ids:
             
             cnt += 1
-            print str(cnt), ": ", s_id
+            print( str(cnt), ": ", s_id)
             
             #Get only the rows with GPS points associated with one segment
             pd_segment = self.df_seg[self.df_seg.seg_id == s_id]
             
             #Do not include segments that have only one GPS point since no calculations are possible
             if len(pd_segment) == 1:
-                print "NO CALCULATION for ", s_id, " since only has one point"
+                print( "NO CALCULATION for ", s_id, " since only has one point")
                 continue
         
             first_seg_idx = pd_segment.index[0]
             last_seg_id = first_seg_idx + len(pd_segment) - 1
             
-            print "first_seg_idx: ", first_seg_idx
-            print "last_seg_id", last_seg_id    
+            print( "first_seg_idx: ", first_seg_idx)
+            print( "last_seg_id", last_seg_id    )
         
             #Segment id
             seg_id = s_id
             
             #Total time
-            time_total = np.sum(pd_segment.time_delta)
-            print "time_total ", time_total
+            pd_segment.to_csv("asd.csv", index = False)
+            time_total = np.sum(pd_segment['time_delta'].astype(float))
+            print( "time_total ", time_total)
             
             #Total distance
-            distance_total = np.sum(pd_segment.distance_delta)
-            print "distance_total ", distance_total
+            distance_total = np.sum(pd_segment['distance_delta'].astype(float))
+            print( "distance_total ", distance_total)
             
             #Mean velocity
             vel_mean_distance = distance_total/float(time_total)
             
             #Mean Velocity by segments
-            vel_mean_segment = np.sum(pd_segment.velocity_delta)/len(pd_segment)
+            vel_mean_segment = np.sum(pd_segment['velocity_delta'].astype(float))/len(pd_segment)
             
             #Velocities Top
-            vd_copy = pd_segment.velocity_delta.copy()
-            topvels = sorted(vd_copy, reverse = True)
+            vd_copy = pd_segment.velocity_delta.copy().astype(float)
+            topvels = vd_copy.sort_values(ascending = False).to_numpy()
             
             #Top1
             vel_top1 = topvels[0]
@@ -167,8 +178,9 @@ class SegmentFeaturization(object):
                 vel_top3 = topvels[2]
             
             #Accelerations Top
-            ad_copy = pd_segment.acceleration_delta.copy()
-            topaccs = sorted(ad_copy, reverse = True)
+            ad_copy = pd_segment.acceleration_delta.copy().astype(float)
+            topaccs = ad_copy.sort_values(ascending = False).to_numpy()
+
             
             #Top1
             acc_top1 = topaccs[0]
@@ -215,13 +227,15 @@ class SegmentFeaturization(object):
         input:  file_path: path to save CSV file
         output: None
         """
-        self.df_seg.to_csv(file_path)
+        self.df_seg.to_csv(file_path, index=False)
 
 # ================================================================
 # Segment Featurization
 # ================================================================
              
 if __name__ == "__main__":
-    sf = SegmentFeaturization("segment_master.csv")
+    # sf = SegmentFeaturization("segment_master.csv")
+    sf = SegmentFeaturization("segment_master_sample.csv")
     sf.featurize_segment()
-    sf.save_to_csv("segment_featured_master.csv")
+    # sf.save_to_csv("segment_featured_master.csv")
+    sf.save_to_csv("segment_featured_master_sample.csv")

@@ -17,7 +17,7 @@ import datetime
 import math
 import csv
 from geopy.distance import geodesic 
-
+import time
 # ================================================================
 # Constants definition
 # ================================================================
@@ -109,7 +109,8 @@ class GpsDataEngineering(object):
         Create a standardized timestamp entry for each GPS point
         """
         td = self.df_gps[DATE_STR] + " " + self.df_gps[TIME_STR]
-        self.df_gps[TIMESTAMP_STR] = map(self.dt_to_timestamp, td)
+        # self.df_gps[TIMESTAMP_STR] = map(self.dt_to_timestamp, td)
+        self.df_gps[TIMESTAMP_STR] = pd.to_datetime(td)
         
     def calculate_segment_characteristics(self, segment_file_path):
         """
@@ -170,8 +171,10 @@ class GpsDataEngineering(object):
             prev_vel = 0
             prev_acc = 0
             prev_bear = 0
-        
+
+            
             # Loop over data for one segment
+            start_time = time.time()
             for i, row in pd_segment.iterrows():
         
                 ##-------------------------------------------------------
@@ -207,7 +210,7 @@ class GpsDataEngineering(object):
         
                 # 1. Time delta calculation
                 t_delta =  row[TIMESTAMP_STR] - prev_time
-                
+                t_delta = t_delta.total_seconds()
                 # Adjust for 2 adjacent GPS points with the same timestamp
                 # This may happen due to error in output of the GPS tracking device
                 # If this happen, we will just adjust delta time to 1 second
@@ -226,7 +229,7 @@ class GpsDataEngineering(object):
         
                 # 3. Velocity calculation
                 try:
-                    v_delta = d_delta/float(t_delta)
+                    v_delta = d_delta/t_delta
                 except:
                     print( "Div By 0 at: SegID | Timestamp | Time | DDelta |  TDelta", seg_id, row[TIMESTAMP_STR], row[TIME_STR], d_delta, t_delta)
                     
@@ -304,18 +307,21 @@ class GpsDataEngineering(object):
             
             #Finally, update the dataframe with the calculated values
             self.df_gps[first_segment_index:first_segment_index+len(pd_segment)] = pd_segment
-            
-            with open(segment_file_path, 'a') as f:
-                (self.df_gps[first_segment_index:first_segment_index + len(pd_segment)]).to_csv(f, header = False, index = False)
+            end_time = time.time()
+            (self.df_gps[first_segment_index:first_segment_index + len(pd_segment)]).to_csv(segment_file_path, header = False, index = False,mode='a')
+            print(end_time - start_time)
+            start_time = end_time
 
 # ================================================================
 # GPS Data Engineering
 # ================================================================
              
 if __name__ == "__main__":
-    gpsde = GpsDataEngineering("gps_points_master.csv")
+    # gpsde = GpsDataEngineering("gps_points_master.csv")
+    gpsde = GpsDataEngineering("gps_points_master_sample.csv")
     gpsde.add_timestamp()          # Add timestamp entry for each GPS point
-    gpsde.calculate_segment_characteristics('segment_master.csv')
+    # gpsde.calculate_segment_characteristics('segment_master.csv')
+    gpsde.calculate_segment_characteristics('segment_master_sample.csv')
     
     
     
